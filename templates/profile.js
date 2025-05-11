@@ -7,7 +7,11 @@ export function renderProfileView(container) {
   container.innerHTML = ""; // Clear the container
   container.appendChild(profileContainer);
 
-  profileContainer.innerHTML = "<h2>Loading profile data...</h2>";
+  profileContainer.innerHTML = `
+    <div class="profile-header">
+      <h2>Loading profile data...</h2>
+    </div>
+  `;
 
   // Get user ID from JWT if available
   const token = localStorage.getItem("authToken");
@@ -47,17 +51,24 @@ export function renderProfileView(container) {
 
       profileContainer.innerHTML = `
         <div class="profile-header">
-          <h2>${profileData.name || "Student"}'s Profile</h2>
+          <h2>
+            <svg width="36" height="36" viewBox="0 0 64 64" fill="none" style="vertical-align:middle;margin-right:8px;">
+              <circle cx="32" cy="32" r="30" fill="#fff" fill-opacity="0.12"/>
+              <path d="M32 12L56 26L32 40L8 26L32 12Z" fill="#fff" fill-opacity="0.22"/>
+              <path d="M32 44V52" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="32" cy="32" r="8" fill="#e8491d" stroke="#fff" stroke-width="2"/>
+            </svg>
+            ${profileData.name || "Student"}'s Profile
+          </h2>
           <div class="profile-nav">
-            <button data-view="home" class="btn">Home</button>
             <button data-view="stats" class="btn">View Statistics</button>
             <button id="logout-btn" class="btn-logout">Logout</button>
           </div>
         </div>
         <div class="profile-content">
           <div class="profile-info">
-            <p>ID: ${profileData.id || "N/A"}</p>
-            <p>XP: ${profileData.xp || 0}</p>
+            <p><strong>ID:</strong> ${profileData.id || "N/A"}</p>
+            <p><strong>XP:</strong> ${profileData.xp || 0}</p>
           </div>
           
           <div class="profile-section">
@@ -65,7 +76,10 @@ export function renderProfileView(container) {
             <ul>
               ${
                 (profileData.grades || [])
-                  .map((grade) => `<li>${grade.subject}: ${grade.score}</li>`)
+                  .map(
+                    (grade) =>
+                      `<li><strong>${grade.subject}:</strong> ${grade.score}</li>`
+                  )
                   .join("") || "<li>No grades available</li>"
               }
             </ul>
@@ -76,25 +90,15 @@ export function renderProfileView(container) {
             <ul>
               ${
                 (profileData.audits || [])
-                  .map((audit) => `<li>${audit.title}: ${audit.status}</li>`)
+                  .map(
+                    (audit) =>
+                      `<li><strong>${audit.title}:</strong> ${audit.status}</li>`
+                  )
                   .join("") || "<li>No audits available</li>"
               }
             </ul>
           </div>
           
-          <div class="profile-section">
-            <h3>Skills</h3>
-            <ul>
-              ${
-                (profileData.skills || [])
-                  .map(
-                    (skill) =>
-                      `<li>${skill.name}: ${skill.level} (${skill.xp} XP)</li>`
-                  )
-                  .join("") || "<li>No skills available</li>"
-              }
-            </ul>
-          </div>
         </div>
       `;
 
@@ -131,7 +135,15 @@ export function renderProfileView(container) {
 function showMockData(container) {
   container.innerHTML = `
     <div class="profile-header">
-      <h2>Test User's Profile</h2>
+      <h2>
+        <svg width="36" height="36" viewBox="0 0 64 64" fill="none" style="vertical-align:middle;margin-right:8px;">
+          <circle cx="32" cy="32" r="30" fill="#fff" fill-opacity="0.12"/>
+          <path d="M32 12L56 26L32 40L8 26L32 12Z" fill="#fff" fill-opacity="0.22"/>
+          <path d="M32 44V52" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="32" cy="32" r="8" fill="#e8491d" stroke="#fff" stroke-width="2"/>
+        </svg>
+        Test User's Profile
+      </h2>
       <div class="profile-nav">
         <button data-view="home" class="btn">Home</button>
         <button data-view="stats" class="btn">View Statistics</button>
@@ -140,16 +152,16 @@ function showMockData(container) {
     </div>
     <div class="profile-content">
       <div class="profile-info">
-        <p>ID: 123</p>
-        <p>XP: 42500</p>
+        <p><strong>ID:</strong> 123</p>
+        <p><strong>XP:</strong> 42500</p>
       </div>
       
       <div class="profile-section">
         <h3>Grades</h3>
         <ul>
-          <li>JavaScript: A</li>
-          <li>GraphQL: B+</li>
-          <li>HTML/CSS: A-</li>
+          <li><strong>JavaScript:</strong> A</li>
+          <li><strong>GraphQL:</strong> B+</li>
+          <li><strong>HTML/CSS:</strong> A-</li>
         </ul>
       </div>
       

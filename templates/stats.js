@@ -1,22 +1,17 @@
 import { getStudentProfile } from "../services/graphql.js";
 
 // Import charts
-let renderLevelChart, renderSkillsChart, renderGradesChart;
+let renderLevelChart, renderGradesChart;
 
 try {
-  ({ renderLevelChart } = await import("./components/charts/levelChart.js"));
-  ({ renderSkillsChart } = await import("./components/charts/skillsChart.js"));
-  ({ renderGradesChart } = await import("./components/charts/gradesChart.js"));
+  ({ renderLevelChart } = await import("./components/levelChart.js"));
+  ({ renderGradesChart } = await import("./components/gradesChart.js"));
 } catch (error) {
   console.warn("Chart components not available:", error);
   // Fallback implementations
   renderLevelChart = (data, containerId) => {
     document.getElementById(containerId).innerHTML =
       "<p>XP chart visualization not available</p>";
-  };
-  renderSkillsChart = (data, containerId) => {
-    document.getElementById(containerId).innerHTML =
-      "<p>Skills chart visualization not available</p>";
   };
   renderGradesChart = (data, containerId) => {
     document.getElementById(containerId).innerHTML =
@@ -78,7 +73,6 @@ export function renderStatsView(container) {
             <h2>Error Loading Statistics</h2>
             <p>${error.message}</p>
             <button data-view="profile" class="btn">Return to Profile</button>
-            <button data-view="home" class="btn">Return Home</button>
           </div>
         `;
       });
@@ -91,7 +85,6 @@ function renderStatsContent(profileData, container) {
       <h2>${profileData.name || "Student"}'s Statistics</h2>
       <div class="stats-nav">
         <button data-view="profile" class="btn">Back to Profile</button>
-        <button data-view="home" class="btn">Home</button>
         <button id="logout-btn" class="btn-logout">Logout</button>
       </div>
     </div>
@@ -100,10 +93,6 @@ function renderStatsContent(profileData, container) {
       <div class="summary-item">
         <h3>Total XP</h3>
         <p>${profileData.xp || 0}</p>
-      </div>
-      <div class="summary-item">
-        <h3>Skills</h3>
-        <p>${(profileData.skills || []).length} Acquired</p>
       </div>
       <div class="summary-item">
         <h3>Grades</h3>
@@ -116,12 +105,7 @@ function renderStatsContent(profileData, container) {
         <h3>XP Progress</h3>
         <div id="xp-chart" class="chart"></div>
       </div>
-      
-      <div class="chart-section">
-        <h3>Skills Distribution</h3>
-        <div id="skills-chart" class="chart"></div>
-      </div>
-      
+            
       <div class="chart-section">
         <h3>Grade Performance</h3>
         <div id="grades-chart" class="chart"></div>
@@ -141,13 +125,6 @@ function renderStatsContent(profileData, container) {
   } else {
     document.getElementById("xp-chart").innerHTML =
       "<p>No XP history data available</p>";
-  }
-
-  if (profileData.skills && profileData.skills.length > 0) {
-    renderSkillsChart(profileData.skills, "skills-chart");
-  } else {
-    document.getElementById("skills-chart").innerHTML =
-      "<p>No skills data available</p>";
   }
 
   if (profileData.grades && profileData.grades.length > 0) {

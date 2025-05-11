@@ -9,8 +9,7 @@ This project is a Single Page Application (SPA) designed for managing student pr
 ├── index.html                  # Main entry point for the application
 ├── assets
 │   ├── styles.css              # General styles for the application
-│   └── svg
-│       └── icons.js            # SVG icons used in the application
+│   └── favicon.ico             # Favorites icon for the application
 ├── services
 │   ├── app.js                  # Initializes the application and manages state
 │   ├── router.js               # Handles routing between different templates
@@ -23,14 +22,10 @@ This project is a Single Page Application (SPA) designed for managing student pr
 │   ├── profile.js              # Profile view logic
 │   ├── stats.js                # Stats view logic
 │   └── components
-│       ├── navbar.js           # Navigation bar component
-│       ├── footer.js           # Footer component
-│       └── charts
-│           ├── levelChart.js   # Chart to visualize XP
-│           ├── skillsChart.js  # Chart to visualize skills
-│           └── gradesChart.js  # Chart to visualize grades
+│       ├── levelChart.js       # Chart to visualize XP
+│       └── gradesChart.js      # Chart to visualize grades
 ├── LICENSE                     # MIT License
-└── README.md                   # Documentation for the project
+└── README.md                   # Documentation
 ```
 
 ## Setup Instructions

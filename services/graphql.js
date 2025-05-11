@@ -110,35 +110,12 @@ function transformToProfile(data) {
       }))
     : [];
 
-  // Create skills from the path patterns in transactions
-  const skillMap = {};
-  if (data.transaction) {
-    data.transaction.forEach((tx) => {
-      const pathParts = tx.path.split("/");
-      if (pathParts.length >= 2) {
-        const skill = pathParts[1]; // Assuming second path segment is the skill area
-        if (!skillMap[skill]) {
-          skillMap[skill] = { xp: 0, count: 0 };
-        }
-        skillMap[skill].xp += tx.amount;
-        skillMap[skill].count += 1;
-      }
-    });
-  }
-
-  const skills = Object.entries(skillMap).map(([name, data]) => ({
-    name,
-    level: Math.floor(data.xp / 1000) + 1, // Simple level calculation
-    xp: data.xp,
-  }));
-
   return {
     id: user.id,
     name: user.login,
     xp: totalXp,
     grades,
     audits,
-    skills,
     xpHistory,
   };
 }
