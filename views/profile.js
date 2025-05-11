@@ -1,27 +1,4 @@
 import { getStudentProfile } from "../controllers/graphql.js";
-// Import charts if available, otherwise provide fallbacks
-let renderLevelChart, renderSkillsChart, renderGradesChart;
-
-try {
-  ({ renderLevelChart } = await import("./components/charts/levelChart.js"));
-  ({ renderSkillsChart } = await import("./components/charts/skillsChart.js"));
-  ({ renderGradesChart } = await import("./components/charts/gradesChart.js"));
-} catch (error) {
-  console.warn("Chart components not available:", error);
-  // Fallback implementations
-  renderLevelChart = (data, containerId) => {
-    document.getElementById(containerId).innerHTML =
-      "<p>XP chart visualization not available</p>";
-  };
-  renderSkillsChart = (data, containerId) => {
-    document.getElementById(containerId).innerHTML =
-      "<p>Skills chart visualization not available</p>";
-  };
-  renderGradesChart = (data, containerId) => {
-    document.getElementById(containerId).innerHTML =
-      "<p>Grades chart visualization not available</p>";
-  };
-}
 
 export function renderProfileView(container) {
   // Create the profile container if it doesn't exist
@@ -71,8 +48,11 @@ export function renderProfileView(container) {
       profileContainer.innerHTML = `
         <div class="profile-header">
           <h2>${profileData.name || "Student"}'s Profile</h2>
-          <button data-view="home" class="btn-home">Home</button>
-          <button id="logout-btn" class="btn-logout">Logout</button>
+          <div class="profile-nav">
+            <button data-view="home" class="btn">Home</button>
+            <button data-view="stats" class="btn">View Statistics</button>
+            <button id="logout-btn" class="btn-logout">Logout</button>
+          </div>
         </div>
         <div class="profile-content">
           <div class="profile-info">
@@ -115,13 +95,6 @@ export function renderProfileView(container) {
               }
             </ul>
           </div>
-          
-          <div id="charts" class="charts-container">
-            <h3>Achievements</h3>
-            <div id="xp-chart" class="chart"></div>
-            <div id="skills-chart" class="chart"></div>
-            <div id="grades-chart" class="chart"></div>
-          </div>
         </div>
       `;
 
@@ -131,18 +104,8 @@ export function renderProfileView(container) {
         window.location.href = "/";
       });
 
-      // Render charts if data is available
-      if (profileData.xpHistory && profileData.xpHistory.length > 0) {
-        renderLevelChart(profileData.xpHistory, "xp-chart");
-      }
-
-      if (profileData.skills && profileData.skills.length > 0) {
-        renderSkillsChart(profileData.skills, "skills-chart");
-      }
-
-      if (profileData.grades && profileData.grades.length > 0) {
-        renderGradesChart(profileData.grades, "grades-chart");
-      }
+      // Store profile data in localStorage for stats page to use
+      localStorage.setItem("profileData", JSON.stringify(profileData));
     })
     .catch((error) => {
       console.error("Profile loading error:", error);
@@ -169,8 +132,11 @@ function showMockData(container) {
   container.innerHTML = `
     <div class="profile-header">
       <h2>Test User's Profile</h2>
-      <button data-view="home" class="btn-home">Home</button>
-      <button id="logout-btn" class="btn-logout">Logout</button>
+      <div class="profile-nav">
+        <button data-view="home" class="btn">Home</button>
+        <button data-view="stats" class="btn">View Statistics</button>
+        <button id="logout-btn" class="btn-logout">Logout</button>
+      </div>
     </div>
     <div class="profile-content">
       <div class="profile-info">

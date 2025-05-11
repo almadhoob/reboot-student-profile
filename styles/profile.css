@@ -36,29 +36,3 @@ body {
 .profile-info p {
   margin: 5px 0;
 }
-
-.graph-container {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-
-.graph {
-  flex: 1;
-  margin: 0 10px;
-}
-
-.graph svg {
-  width: 100%;
-  height: auto;
-}
-
-@media (max-width: 600px) {
-  .graph-container {
-    flex-direction: column;
-  }
-
-  .graph {
-    margin: 10px 0;
-  }
-}
