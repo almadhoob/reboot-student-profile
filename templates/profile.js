@@ -1,4 +1,4 @@
-import { getStudentProfile } from "../controllers/graphql.js";
+import { getStudentProfile } from "../services/graphql.js";
 
 export function renderProfileView(container) {
   // Create the profile container if it doesn't exist

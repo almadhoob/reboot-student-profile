@@ -1,6 +1,6 @@
 # Reboot Student Profile
 
-This project is a Single Page Application (SPA) designed for managing student profiles, including authentication and displaying user achievements. The application interacts with the Reboot Coding Institute's GraphQL API to retrieve and display student information.
+This project is a Single Page Application (SPA) designed for managing student profiles, including authentication and displaying user achievements. The application interacts with the Reboot Coding Institute's GraphQL API (compliant with the 01 Edu system) to retrieve and display student information.
 
 ## Project Structure
 
@@ -8,23 +8,16 @@ This project is a Single Page Application (SPA) designed for managing student pr
 .
 ├── index.html                  # Main entry point for the application
 ├── assets
-│   ├── fav
-│   |   ├── about.txt           # Favicons information
-│   |   └── site.webmanifest    # Favicons maifest
+│   ├── styles.css              # General styles for the application
 │   └── svg
 │       └── icons.js            # SVG icons used in the application
-├── controllers
+├── services
 │   ├── app.js                  # Initializes the application and manages state
-│   ├── router.js               # Handles routing between different views
+│   ├── router.js               # Handles routing between different templates
 │   ├── auth.js                 # Manages authentication logic
 │   ├── graphql.js              # Functions for making GraphQL queries
 │   └── utils.js                # Utility functions for data formatting and validation
-├── styles
-│   ├── home.css                # General styles for the application
-│   ├── login.css               # Styles specific to the login page
-│   ├── profile.css             # Styles specific to the profile page
-│   └── stats.css               # Styles specific to the stats page
-├── views
+├── templates
 │   ├── home.js                 # Homepage view logic
 │   ├── login.js                # Login view logic
 │   ├── profile.js              # Profile view logic

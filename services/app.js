@@ -31,7 +31,7 @@ export async function loadView(view) {
 
   try {
     // Dynamically import the view module based on the view name
-    const viewModule = await import(`../views/${view}.js`);
+    const viewModule = await import(`../templates/${view}.js`);
 
     // Check if the module exports the expected render function
     const renderFunctionName = `render${

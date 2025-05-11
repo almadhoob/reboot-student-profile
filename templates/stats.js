@@ -1,4 +1,4 @@
-import { getStudentProfile } from "../controllers/graphql.js";
+import { getStudentProfile } from "../services/graphql.js";
 
 // Import charts
 let renderLevelChart, renderSkillsChart, renderGradesChart;

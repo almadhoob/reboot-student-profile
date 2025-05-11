@@ -39,11 +39,11 @@ export function renderLoginView(container) {
 
         // Use Router instead of direct import
         try {
-          const { Router } = await import("../controllers/router.js");
+          const { Router } = await import("../services/router.js");
           Router.navigateTo("profile");
         } catch (routerError) {
           // Fallback to loadView if Router import fails
-          const { loadView } = await import("../controllers/app.js");
+          const { loadView } = await import("../services/app.js");
           loadView("profile");
         }
       } else {
