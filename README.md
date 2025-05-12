@@ -1,6 +1,6 @@
 # Reboot Student Profile
 
-This project is a Single Page Application (SPA) designed for managing student profiles, including authentication and displaying user achievements. The application interacts with the Reboot Coding Institute's GraphQL API (compliant with the 01 Edu system) to retrieve and display student information.
+This project is Single Page Application (SPA) designed in a clean way using plain HTML, CSS, and JavaScript. The application interacts with the Reboot Coding Institute's GraphQL API (compliant with the 01 Edu system) to retrieve and display student profiles, including authentication and displaying user achievements.
 
 ## Project Structure
 
@@ -30,8 +30,10 @@ This project is a Single Page Application (SPA) designed for managing student pr
 
 ## Setup Instructions
 
-1. Clone the repository to your local machine.
-2. Open `index.html` in your web browser to run the application.
+You can either [open the website from this URL](http://almadhoob.github.io/reboot-student-profile), or:
+
+1. Clone the repository to your local machine: `git clone git@github.com:almadhoob/reboot-student-profile.git`
+2. Serve it in your web browser using a command such as the following: `python3 -m http-server`
 
 ## Usage
 

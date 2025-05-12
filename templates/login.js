@@ -1,4 +1,13 @@
+import authService from "../services/auth.js";
+import { Router } from "../services/router.js";
+
 export function renderLoginView(container) {
+  // Check if user is already logged in - redirect to profile if they are
+  if (authService.isAuthenticated()) {
+    Router.navigateTo("profile");
+    return; // Stop further rendering to prevent flicker
+  }
+
   // Create the login form HTML
   container.innerHTML = `
     <div class="login-container">
@@ -14,7 +23,7 @@ export function renderLoginView(container) {
         </div>
         <div id="error-message" class="error-message"></div>
         <button type="submit" class="login-button">Login</button>
-        <button type="button" data-view="home" class="cancel-button">Cancel</button>
+        <button type="button" data-route="home" class="cancel-button">Cancel</button>
       </form>
     </div>
   `;
@@ -31,61 +40,13 @@ export function renderLoginView(container) {
     const password = document.getElementById("password").value;
 
     try {
-      const token = await authenticateUser(username, password);
+      // Use the auth service to handle login
+      await authService.login(username, password);
 
-      // Store the token directly - the response IS the token
-      if (token) {
-        localStorage.setItem("authToken", token);
-
-        // Use Router instead of direct import
-        try {
-          const { Router } = await import("../services/router.js");
-          Router.navigateTo("profile");
-        } catch (routerError) {
-          // Fallback to loadView if Router import fails
-          const { loadView } = await import("../services/app.js");
-          loadView("profile");
-        }
-      } else {
-        throw new Error("No token received from server");
-      }
+      // If login is successful, redirect to profile
+      Router.navigateTo("profile");
     } catch (error) {
       errorMessage.textContent = error.message;
     }
   });
-}
-
-async function authenticateUser(username, password) {
-  // Base64 encode the username:password for Basic auth
-  const credentials = btoa(`${username}:${password}`);
-
-  try {
-    const response = await fetch("https://learn.reboot01.com/api/auth/signin", {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Auth error:", errorText);
-      throw new Error("Authentication failed. Please check your credentials.");
-    }
-
-    const responseText = await response.text();
-
-    // Check if the response is a JSON object or just a plain token string
-    try {
-      // Try to parse as JSON
-      return JSON.parse(responseText);
-    } catch (e) {
-      // If not valid JSON, assume it's the token string directly
-      return responseText;
-    }
-  } catch (error) {
-    console.error("Authentication error:", error);
-    throw error;
-  }
 }

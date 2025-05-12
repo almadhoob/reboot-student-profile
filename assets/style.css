@@ -20,41 +20,10 @@ header {
   text-align: center;
 }
 
-h1 {
-  margin: 0;
-}
-
 .container {
   width: 80%;
   margin: auto;
   overflow: hidden;
-}
-
-.navbar {
-  display: flex;
-  justify-content: space-around;
-  background: #35424a;
-  padding: 10px 0;
-}
-
-.navbar a {
-  color: #ffffff;
-  text-decoration: none;
-  padding: 10px 15px;
-}
-
-.navbar a:hover {
-  background: #e8491d;
-}
-
-.footer {
-  background: #35424a;
-  color: #ffffff;
-  text-align: center;
-  padding: 10px 0;
-  position: relative;
-  bottom: 0;
-  width: 100%;
 }
 
 .card {
@@ -129,6 +98,7 @@ h1 {
   letter-spacing: 1px;
   text-shadow: 0 2px 12px rgba(53, 66, 74, 0.18);
   z-index: 1;
+  text-align: center;
 }
 
 .home p {
@@ -892,5 +862,113 @@ h1 {
 
   .axis text {
     font-size: 10px;
+  }
+}
+
+/* 404 Page Styles */
+
+.not-found-container {
+  max-width: 600px;
+  margin: 80px auto 40px auto;
+  background: linear-gradient(120deg, #e8491d 0%, #35424a 100%);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(52, 62, 80, 0.18),
+    0 1.5px 8px rgba(232, 73, 29, 0.08);
+  padding: 48px 32px 40px 32px;
+  overflow: hidden;
+  color: #fff;
+  text-align: center;
+  position: relative;
+}
+
+.not-found-container::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  left: -60px;
+  width: 180px;
+  height: 180px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.not-found-container::after {
+  content: "";
+  position: absolute;
+  bottom: -60px;
+  right: -60px;
+  width: 180px;
+  height: 180px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.not-found-container h1 {
+  font-size: 3.2em;
+  font-weight: bold;
+  margin: 0 0 24px 0;
+  letter-spacing: 1px;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(53, 66, 74, 0.18);
+  position: relative;
+  z-index: 1;
+}
+
+.not-found-container p {
+  font-size: 1.2em;
+  margin-bottom: 32px;
+  line-height: 1.6;
+  color: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+.not-found-container .btn,
+.not-found-container button {
+  background: linear-gradient(90deg, #ff7e5f 0%, #feb47b 100%);
+  color: #fff;
+  border: none;
+  padding: 14px 38px;
+  font-size: 1.15em;
+  font-weight: bold;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(232, 73, 29, 0.12);
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  z-index: 1;
+  position: relative;
+  outline: none;
+}
+
+.not-found-container .btn:hover,
+.not-found-container button:hover {
+  background: linear-gradient(90deg, #35424a 0%, #e8491d 100%);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 4px 18px rgba(53, 66, 74, 0.18);
+}
+
+@media (max-width: 600px) {
+  .not-found-container {
+    padding: 32px 20px;
+    margin: 40px 2vw;
+    max-width: 96vw;
+  }
+
+  .not-found-container h1 {
+    font-size: 2.2em;
+    margin-bottom: 16px;
+  }
+
+  .not-found-container p {
+    font-size: 1em;
+    margin-bottom: 24px;
+  }
+
+  .not-found-container .btn,
+  .not-found-container button {
+    padding: 12px 28px;
+    font-size: 1em;
   }
 }
