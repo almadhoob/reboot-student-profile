@@ -12,7 +12,13 @@ export function renderHomeView(container) {
         Discover your academic journey in style.<br>
         Ready to get started?
       </p>
-      <button data-view="login" class="button">Login</button>
+      <button data-route="login" class="button">Login</button>
     </div>
   `;
+
+  const loginButton = container.querySelector("button");
+  if (loginButton) {
+    loginButton.setAttribute("data-route", "login");
+    loginButton.removeAttribute("data-view");
+  }
 }

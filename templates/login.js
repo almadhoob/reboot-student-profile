@@ -15,15 +15,15 @@ export function renderLoginView(container) {
       <form id="login-form" class="login-form">
         <div class="form-group">
           <label for="username">Username or Email</label>
-          <input type="text" id="username" name="username" required>
+          <input type="text" id="username" name="username" required autocomplete="username">
         </div>
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" required>
+          <input type="password" id="password" name="password" required autocomplete="current-password">
         </div>
         <div id="error-message" class="error-message"></div>
         <button type="submit" class="login-button">Login</button>
-        <button type="button" data-route="home" class="cancel-button">Cancel</button>
+        <button type="button" class="cancel-button" id="cancel-button">Cancel</button>
       </form>
     </div>
   `;
@@ -31,22 +31,41 @@ export function renderLoginView(container) {
   // Now that the form exists in the DOM, we can access it
   const loginForm = document.getElementById("login-form");
   const errorMessage = document.getElementById("error-message");
+  const cancelButton = document.getElementById("cancel-button");
 
   // Add event listener to the form
   loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    // Clear previous error messages
+    errorMessage.textContent = "";
+
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
+
+    // Disable form during submission to prevent multiple submissions
+    const submitButton = loginForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.textContent = "Logging in...";
 
     try {
       // Use the auth service to handle login
       await authService.login(username, password);
 
-      // If login is successful, redirect to profile
+      // If login is successful, redirect to profile using hash-based navigation
       Router.navigateTo("profile");
     } catch (error) {
-      errorMessage.textContent = error.message;
+      errorMessage.textContent =
+        error.message || "Login failed. Please try again.";
+
+      // Re-enable the submit button
+      submitButton.disabled = false;
+      submitButton.textContent = "Login";
     }
+  });
+
+  // Add event listener to the cancel button - using Router for navigation
+  cancelButton.addEventListener("click", () => {
+    Router.navigateTo("home");
   });
 }

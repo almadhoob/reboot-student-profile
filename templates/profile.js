@@ -105,7 +105,9 @@ export function renderProfileView(container) {
       // Add logout handler
       document.getElementById("logout-btn").addEventListener("click", () => {
         localStorage.removeItem("authToken");
-        window.location.href = "/";
+        import("../services/router.js").then((module) => {
+          module.Router.navigateTo("login");
+        });
       });
 
       // Store profile data in localStorage for stats page to use
@@ -174,6 +176,8 @@ function showMockData(container) {
 
   document.getElementById("logout-btn").addEventListener("click", () => {
     localStorage.removeItem("authToken");
-    window.location.href = "/";
+    import("../services/router.js").then((module) => {
+      module.Router.navigateTo("login");
+    });
   });
 }

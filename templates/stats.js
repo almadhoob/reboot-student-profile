@@ -121,7 +121,9 @@ function renderStatsContent(profileData, container) {
   // Add logout handler
   document.getElementById("logout-btn").addEventListener("click", () => {
     localStorage.removeItem("authToken");
-    window.location.href = "/";
+    import("../services/router.js").then((module) => {
+      module.Router.navigateTo("login");
+    });
   });
 
   // Render charts if data is available

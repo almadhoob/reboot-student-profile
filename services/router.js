@@ -2,20 +2,7 @@
 import { loadView } from "./app.js";
 import authService from "./auth.js";
 
-// Helper to add base path to routes
-function withBase(path) {
-  return authService.getBasePath() + (path.startsWith("/") ? path : "/" + path);
-}
-
-// Helper to remove base path from current URL
-function stripBase(path) {
-  const BASE_PATH = authService.getBasePath();
-  return path.startsWith(BASE_PATH)
-    ? path.slice(BASE_PATH.length) || "/"
-    : path;
-}
-
-// Router module for SPA navigation
+// Router module for SPA navigation using hash-based routing
 export const Router = {
   routes: {
     home: {
@@ -53,7 +40,7 @@ export const Router = {
     // For login route - redirect to profile if already authenticated
     if (routeName === "login" && authService.isAuthenticated()) {
       loadView("profile");
-      history.pushState(null, null, withBase(this.routes.profile.path));
+      window.location.hash = this.routes.profile.path;
       return;
     }
 
@@ -61,44 +48,41 @@ export const Router = {
     if (routeObj.requiresAuth && !authService.isAuthenticated()) {
       // Redirect to login if attempting to access protected route without auth
       loadView("login");
-      history.pushState(null, null, withBase(this.routes.login.path));
+      window.location.hash = this.routes.login.path;
       return;
     }
 
     loadView(routeObj.view);
-    history.pushState(null, null, withBase(routeObj.path));
+    window.location.hash = routeObj.path;
   },
 
   handleNotFound() {
     loadView("error");
-    history.pushState(null, null, withBase(this.routes.error.path));
+    window.location.hash = this.routes.error.path;
   },
 
-  handlePathChange(path) {
-    // Remove the base path to get the app-specific path
-    const appPath = stripBase(path);
-
-    // Normalize path (remove trailing slash except for root path)
-    const normalizedPath = appPath === "/" ? "/" : appPath.replace(/\/$/, "");
+  handleHashChange() {
+    // Get path from hash (remove the # character)
+    const path = window.location.hash.slice(1) || "/";
 
     // Find the route that matches this path
     const route = Object.values(this.routes).find(
-      (r) => r.path === normalizedPath
+      (r) => r.path === path || r.path === path + "/"
     );
 
     if (route) {
       // Special handling for login route - redirect to profile if already authenticated
       if (route.view === "login" && authService.isAuthenticated()) {
         loadView("profile");
-        history.pushState(null, null, withBase(this.routes.profile.path));
+        window.location.hash = this.routes.profile.path;
         return;
       }
 
       // Check authentication for protected routes
       if (route.requiresAuth && !authService.isAuthenticated()) {
-        console.log("Authentication required for", normalizedPath);
+        console.log("Authentication required for", path);
         loadView("login");
-        history.pushState(null, null, withBase(this.routes.login.path));
+        window.location.hash = this.routes.login.path;
         return;
       }
 
@@ -108,15 +92,17 @@ export const Router = {
     }
   },
 
-  handlePopState() {
-    this.handlePathChange(window.location.pathname);
-  },
-
   initRouter() {
-    window.addEventListener("popstate", () => this.handlePopState());
+    // Listen for hash changes instead of popstate
+    window.addEventListener("hashchange", () => this.handleHashChange());
 
-    // Handle initial route
-    this.handlePathChange(window.location.pathname);
+    // Handle initial route - if no hash, set the default
+    if (!window.location.hash) {
+      window.location.hash = "#/";
+    } else {
+      // Process the current hash
+      this.handleHashChange();
+    }
 
     // Add click handler for navigation links
     document.addEventListener("click", (e) => {

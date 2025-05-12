@@ -6,4 +6,13 @@ export function renderErrorView(container) {
         <button data-route="home" class="btn btn-primary">Return to Home</button>
       </div>
     `;
+
+  container
+    .querySelector('button[data-route="home"]')
+    .addEventListener("click", (e) => {
+      e.preventDefault();
+      import("../services/router.js").then((module) => {
+        module.Router.navigateTo("home");
+      });
+    });
 }

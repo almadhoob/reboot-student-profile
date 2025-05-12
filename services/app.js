@@ -18,8 +18,20 @@ async function initializeApp() {
 function checkInitialAuthState() {
   // If there's a remembered route and user is authenticated, restore it
   const rememberedView = localStorage.getItem("lastAuthenticatedView");
-  if (rememberedView && authService.isAuthenticated()) {
+  if (
+    rememberedView &&
+    authService.isAuthenticated() &&
+    !window.location.hash
+  ) {
+    // Only apply remembered view if there's no hash in the URL
     localStorage.setItem("currentView", rememberedView);
+    // Set the hash to match the remembered view
+    const routeEntry = Object.entries(Router.routes).find(
+      ([_, r]) => r.view === rememberedView
+    );
+    if (routeEntry) {
+      window.location.hash = routeEntry[1].path;
+    }
   }
 }
 
@@ -34,7 +46,9 @@ function setupEventListeners() {
       if (routeEntry) {
         Router.navigateTo(routeEntry[0]);
       } else {
+        // If no matching route, still update the hash to reflect the view
         loadView(view);
+        window.location.hash = `#/${view}`;
       }
     }
   });
