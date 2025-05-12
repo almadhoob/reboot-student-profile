@@ -1,5 +1,3 @@
-import { Router } from "./router.js";
-
 const authService = {
   TOKEN_KEY: "authToken",
 
@@ -50,7 +48,31 @@ const authService = {
 
   logout: () => {
     localStorage.removeItem(authService.TOKEN_KEY);
-    Router.navigateTo("login");
+
+    // Get the base path from the current URL
+    const basePath = authService.getBasePath();
+
+    // Navigate to login with base path included
+    const loginUrl = `${basePath}/login`;
+    history.pushState(null, null, loginUrl);
+
+    // Dynamically import to avoid circular dependencies
+    import("./app.js").then((module) => {
+      module.loadView("login");
+    });
+  },
+
+  // Helper function to determine the base path
+  getBasePath: () => {
+    const path = window.location.pathname;
+    // Look for the application path in the URL
+    const pathParts = path.split("/");
+    // Check for both possible subdirectory names
+    if (pathParts.length > 1) {
+      if (pathParts[1] === "reboot-student-profile")
+        return "/reboot-student-profile";
+    }
+    return "";
   },
 
   storeToken: (token) => {
@@ -74,7 +96,7 @@ const authService = {
     } catch (error) {
       console.error("Token validation error:", error);
       // If validation fails, clear the invalid token
-      authService.logout();
+      localStorage.removeItem(authService.TOKEN_KEY);
       return false;
     }
   },

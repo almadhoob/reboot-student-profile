@@ -2,28 +2,14 @@
 import { loadView } from "./app.js";
 import authService from "./auth.js";
 
-// Dynamically determine base path for subdirectory support
-const getBasePath = () => {
-  const path = window.location.pathname;
-  // Look for the application path in the URL
-  const pathParts = path.split("/");
-  // Check for both possible subdirectory names
-  if (pathParts.length > 1) {
-    if (pathParts[1] === "reboot-student-profile")
-      return "/reboot-student-profile";
-  }
-  return "";
-};
-
-const BASE_PATH = getBasePath();
-
 // Helper to add base path to routes
 function withBase(path) {
-  return BASE_PATH + (path.startsWith("/") ? path : "/" + path);
+  return authService.getBasePath() + (path.startsWith("/") ? path : "/" + path);
 }
 
 // Helper to remove base path from current URL
 function stripBase(path) {
+  const BASE_PATH = authService.getBasePath();
   return path.startsWith(BASE_PATH)
     ? path.slice(BASE_PATH.length) || "/"
     : path;
