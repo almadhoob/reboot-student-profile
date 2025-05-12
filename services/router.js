@@ -33,6 +33,7 @@ export const Router = {
     const routeObj = this.routes[routeName];
 
     if (!routeObj) {
+      console.warn(`Route '${routeName}' not found`);
       this.handleNotFound();
       return;
     }
@@ -46,6 +47,9 @@ export const Router = {
 
     // Check authentication for protected routes
     if (routeObj.requiresAuth && !authService.isAuthenticated()) {
+      console.log(`Authentication required for route: ${routeName}`);
+      // Clear any stale data
+      localStorage.removeItem("profileData");
       // Redirect to login if attempting to access protected route without auth
       loadView("login");
       window.location.hash = this.routes.login.path;
@@ -57,6 +61,7 @@ export const Router = {
   },
 
   handleNotFound() {
+    console.log("Handling 404 - route not found");
     loadView("error");
     window.location.hash = this.routes.error.path;
   },
@@ -64,6 +69,7 @@ export const Router = {
   handleHashChange() {
     // Get path from hash (remove the # character)
     const path = window.location.hash.slice(1) || "/";
+    console.log(`Navigating to path: ${path}`);
 
     // Find the route that matches this path
     const route = Object.values(this.routes).find(
@@ -80,7 +86,9 @@ export const Router = {
 
       // Check authentication for protected routes
       if (route.requiresAuth && !authService.isAuthenticated()) {
-        console.log("Authentication required for", path);
+        console.log(`Authentication required for ${path}`);
+        // Clear any stale data
+        localStorage.removeItem("profileData");
         loadView("login");
         window.location.hash = this.routes.login.path;
         return;
@@ -88,6 +96,7 @@ export const Router = {
 
       loadView(route.view);
     } else {
+      console.log(`No route found for path: ${path}`);
       this.handleNotFound();
     }
   },

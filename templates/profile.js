@@ -68,17 +68,22 @@ export function renderProfileView(container) {
         <div class="profile-content">
           <div class="profile-info">
             <p><strong>ID:</strong> ${profileData.id || "N/A"}</p>
-            <p><strong>XP:</strong> ${profileData.xp || 0}</p>
+            <p><strong>Login:</strong> ${profileData.login || "N/A"}</p>
+            <p><strong>XP:</strong> ${Number(
+              profileData.xp-1000000 || 0
+            ).toLocaleString()}</p>
+            <p><strong>Level:</strong> ${profileData.level || 0}</p>
           </div>
           
           <div class="profile-section">
-            <h3>Grades</h3>
+            <h3>Recent Grades (${(profileData.grades || []).length})</h3>
             <ul>
               ${
                 (profileData.grades || [])
+                  .slice(0, 10)
                   .map(
                     (grade) =>
-                      `<li><strong>${grade.subject}:</strong> ${grade.score}</li>`
+                      `<li><strong>${grade.subject}:</strong> ${grade.score} (${grade.status}) - ${grade.date}</li>`
                   )
                   .join("") || "<li>No grades available</li>"
               }
@@ -86,29 +91,52 @@ export function renderProfileView(container) {
           </div>
           
           <div class="profile-section">
-            <h3>Audits</h3>
+            <h3>Recent Audits (${(profileData.audits || []).length})</h3>
             <ul>
               ${
                 (profileData.audits || [])
+                  .slice(0, 10)
                   .map(
                     (audit) =>
-                      `<li><strong>${audit.title}:</strong> ${audit.status}</li>`
+                      `<li><strong>${audit.title}:</strong> ${audit.status} (${audit.grade}) by ${audit.evaluator} - ${audit.date}</li>`
                   )
                   .join("") || "<li>No audits available</li>"
               }
+            </ul>
+          </div>
+
+          <div class="profile-section">
+            <h3>Statistics Summary</h3>
+            <ul>
+              <li><strong>Total Projects:</strong> ${
+                profileData.stats?.totalProjects || 0
+              }</li>
+              <li><strong>Passed Projects:</strong> ${
+                profileData.stats?.passedProjects || 0
+              }</li>
+              <li><strong>Success Rate:</strong> ${
+                profileData.stats?.successRate || 0
+              }%</li>
+              <li><strong>Audit Ratio:</strong> ${
+                profileData.stats?.auditRatio || 0
+              }%</li>
             </ul>
           </div>
           
         </div>
       `;
 
-      // Add logout handler
-      document.getElementById("logout-btn").addEventListener("click", () => {
-        localStorage.removeItem("authToken");
-        import("../services/router.js").then((module) => {
-          module.Router.navigateTo("login");
+      // Add logout handler - check if element exists first
+      const logoutBtn = document.getElementById("logout-btn");
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("profileData");
+          import("../services/router.js").then((module) => {
+            module.Router.navigateTo("login");
+          });
         });
-      });
+      }
 
       // Store profile data in localStorage for stats page to use
       localStorage.setItem("profileData", JSON.stringify(profileData));
@@ -119,22 +147,69 @@ export function renderProfileView(container) {
         <div class="error-container">
           <h2>Error Loading Profile</h2>
           <p>${error.message}</p>
-          <p>This could be due to incorrect API schema or authentication issues.</p>
+          <p>This could be due to incorrect API schema, authentication issues, or network problems.</p>
           <div class="debug-info">
             <details>
               <summary>Debug Information</summary>
-              <p>Token exists: ${Boolean(token)}</p>
-              <p>User ID: ${userId || "Not found in token"}</p>
+              <p><strong>Token exists:</strong> ${Boolean(token)}</p>
+              <p><strong>User ID:</strong> ${userId || "Not found in token"}</p>
+              <p><strong>Error details:</strong> ${
+                error.stack || error.message
+              }</p>
             </details>
           </div>
-          <button data-view="home">Return Home</button>
+          <button data-route="home" class="btn">Return Home</button>
+          <button data-route="login" class="btn">Try Login Again</button>
         </div>
       `;
+
+      // Add event listeners for error container buttons using data-route
+      // These will be handled by the router's global click handler
     });
 }
 
 // Function to show mock data for testing
 function showMockData(container) {
+  const mockData = {
+    id: 123,
+    name: "Test User",
+    login: "testuser",
+    xp: 621000,
+    level: 42,
+    grades: [
+      {
+        subject: "JavaScript Basics",
+        score: 1,
+        status: "Passed",
+        date: "2024-01-15",
+      },
+      { subject: "GraphQL", score: 0.8, status: "Passed", date: "2024-01-10" },
+      { subject: "HTML/CSS", score: 0, status: "Failed", date: "2024-01-05" },
+    ],
+    audits: [
+      {
+        title: "Peer Review",
+        status: "Passed",
+        grade: 1,
+        evaluator: "peer1",
+        date: "2024-01-12",
+      },
+      {
+        title: "Code Review",
+        status: "Passed",
+        grade: 0.9,
+        evaluator: "peer2",
+        date: "2024-01-08",
+      },
+    ],
+    stats: {
+      totalProjects: 3,
+      passedProjects: 2,
+      successRate: 67,
+      auditRatio: 100,
+    },
+  };
+
   container.innerHTML = `
     <div class="profile-header">
       <h2>
@@ -144,40 +219,66 @@ function showMockData(container) {
           <path d="M32 44V52" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
           <circle cx="32" cy="32" r="8" fill="#e8491d" stroke="#fff" stroke-width="2"/>
         </svg>
-        Test User's Profile
+        ${mockData.name}'s Profile (Test Mode)
       </h2>
       <div class="profile-nav">
-        <button data-view="home" class="btn">Home</button>
-        <button data-view="stats" class="btn">View Statistics</button>
-        <button id="logout-btn" class="btn-logout">Logout</button>
+        <button data-route="home" class="btn">Home</button>
+        <button data-route="stats" class="btn">View Statistics</button>
+        <button id="logout-btn-mock" class="btn-logout">Logout</button>
       </div>
     </div>
     <div class="profile-content">
       <div class="profile-info">
-        <p><strong>ID:</strong> 123</p>
-        <p><strong>XP:</strong> 42500</p>
+        <p><strong>ID:</strong> ${mockData.id}</p>
+        <p><strong>Login:</strong> ${mockData.login}</p>
+        <p><strong>XP:</strong> ${Number(mockData.xp).toLocaleString()}</p>
+        <p><strong>Level:</strong> ${mockData.level}</p>
       </div>
       
       <div class="profile-section">
-        <h3>Grades</h3>
+        <h3>Recent Grades (${mockData.grades.length})</h3>
         <ul>
-          <li><strong>JavaScript:</strong> A</li>
-          <li><strong>GraphQL:</strong> B+</li>
-          <li><strong>HTML/CSS:</strong> A-</li>
+          ${mockData.grades
+            .map(
+              (grade) =>
+                `<li><strong>${grade.subject}:</strong> ${grade.score} (${grade.status}) - ${grade.date}</li>`
+            )
+            .join("")}
         </ul>
       </div>
       
       <div class="profile-section">
+        <h3>Recent Audits (${mockData.audits.length})</h3>
+        <ul>
+          ${mockData.audits
+            .map(
+              (audit) =>
+                `<li><strong>${audit.title}:</strong> ${audit.status} (${audit.grade}) by ${audit.evaluator} - ${audit.date}</li>`
+            )
+            .join("")}
+        </ul>
+      </div>
+
+      <div class="profile-section">
         <h3>Auth Status</h3>
         <p>No valid JWT token found. Using test data.</p>
+        <p><strong>Note:</strong> Please login with valid credentials to see real data.</p>
       </div>
     </div>
   `;
 
-  document.getElementById("logout-btn").addEventListener("click", () => {
-    localStorage.removeItem("authToken");
-    import("../services/router.js").then((module) => {
-      module.Router.navigateTo("login");
+  // Add logout handler for mock data - check if element exists first
+  const mockLogoutBtn = document.getElementById("logout-btn-mock");
+  if (mockLogoutBtn) {
+    mockLogoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("profileData");
+      import("../services/router.js").then((module) => {
+        module.Router.navigateTo("login");
+      });
     });
-  });
+  }
+
+  // Store mock data for stats page
+  localStorage.setItem("profileData", JSON.stringify(mockData));
 }
