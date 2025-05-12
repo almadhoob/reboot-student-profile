@@ -8,7 +8,6 @@ try {
   ({ renderGradesChart } = await import("./components/gradesChart.js"));
 } catch (error) {
   console.warn("Chart components not available:", error);
-  // Fallback implementations
   renderLevelChart = (data, containerId) => {
     document.getElementById(containerId).innerHTML =
       "<p>XP chart visualization not available</p>";
@@ -32,7 +31,6 @@ export function renderStatsView(container) {
   const cachedData = localStorage.getItem("profileData");
 
   if (cachedData) {
-    // Use cached data if available
     renderStatsContent(JSON.parse(cachedData), statsContainer);
   } else {
     // Get user ID from JWT if available
@@ -54,16 +52,10 @@ export function renderStatsView(container) {
       }
     }
 
-    // Fetch fresh data if no cached data is available
     getStudentProfile(userId)
       .then((profileData) => {
-        if (!profileData) {
-          throw new Error("No profile data received");
-        }
-
-        // Cache the data for future use
+        if (!profileData) throw new Error("No profile data received");
         localStorage.setItem("profileData", JSON.stringify(profileData));
-
         renderStatsContent(profileData, statsContainer);
       })
       .catch((error) => {
@@ -92,21 +84,34 @@ function renderStatsContent(profileData, container) {
     <div class="stats-summary">
       <div class="summary-item">
         <h3>Total XP</h3>
-        <p>${profileData.xp || 0}</p>
+        <p>${Number(profileData.xp || 0).toLocaleString()}</p>
       </div>
       <div class="summary-item">
         <h3>Grades</h3>
         <p>${(profileData.grades || []).length} Subjects</p>
       </div>
+      <div class="summary-item">
+        <h3>Average</h3>
+        <p>${
+          profileData.grades && profileData.grades.length
+            ? (
+                profileData.grades.reduce(
+                  (sum, g) => sum + Number(g.score || 0),
+                  0
+                ) / profileData.grades.length
+              ).toFixed(2)
+            : "N/A"
+        }</p>
+      </div>
     </div>
     
     <div class="charts-container">
-      <div class="chart-section">
+      <div class="chart-section" id="xp-chart-section">
         <h3>XP Progress</h3>
         <div id="xp-chart" class="chart"></div>
       </div>
-            
-      <div class="chart-section">
+      
+      <div class="chart-section" id="grades-chart-section">
         <h3>Grade Performance</h3>
         <div id="grades-chart" class="chart"></div>
       </div>
@@ -124,13 +129,13 @@ function renderStatsContent(profileData, container) {
     renderLevelChart(profileData.xpHistory, "xp-chart");
   } else {
     document.getElementById("xp-chart").innerHTML =
-      "<p>No XP history data available</p>";
+      "<div class='chart-fallback'><span>No XP history data available</span></div>";
   }
 
   if (profileData.grades && profileData.grades.length > 0) {
     renderGradesChart(profileData.grades, "grades-chart");
   } else {
     document.getElementById("grades-chart").innerHTML =
-      "<p>No grades data available</p>";
+      "<div class='chart-fallback'><span>No grades data available</span></div>";
   }
 }

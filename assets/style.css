@@ -1,5 +1,11 @@
 /* SPA Common Styles */
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -639,12 +645,13 @@ h1 {
 
 .stats-summary {
   display: flex;
-  justify-content: space-around;
+  flex-wrap: wrap;
+  justify-content: center;
   margin-bottom: 30px;
   text-align: center;
-  gap: 24px;
+  gap: 20px;
   background: rgba(255, 255, 255, 0.1);
-  padding: 24px 0;
+  padding: 24px 20px;
   border-radius: 0 0 12px 12px;
   position: relative;
   z-index: 1;
@@ -652,137 +659,238 @@ h1 {
 
 .summary-item {
   background: rgba(255, 255, 255, 0.12);
-  padding: 18px 24px;
+  padding: 18px 20px;
   border-radius: 12px;
-  min-width: 150px;
+  flex: 1 1 150px;
+  max-width: 220px;
   box-shadow: 0 1px 6px rgba(53, 66, 74, 0.08);
   color: #fff;
 }
 
-.summary-item h3 {
-  margin: 0 0 10px 0;
-  color: #fff;
-  font-size: 1.1em;
-  font-weight: bold;
-  letter-spacing: 0.5px;
-}
-
-.summary-item p {
-  font-size: 2em;
-  font-weight: bold;
-  margin: 0;
-  color: #ffe0c2;
-  text-shadow: 0 2px 12px rgba(53, 66, 74, 0.1);
+.stats-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 30px;
+  text-align: center;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 24px 20px;
+  border-radius: 0 0 12px 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .charts-container {
   display: flex;
   flex-direction: column;
-  gap: 30px;
-  padding: 32px 32px 32px 32px;
+  gap: 48px;
+  padding: 32px;
   position: relative;
   z-index: 1;
 }
 
 .chart-section {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 24px 18px 18px 18px;
-  border-radius: 12px;
-  box-shadow: 0 1px 6px rgba(53, 66, 74, 0.08);
+  background: rgba(35, 40, 45, 0.5);
+  padding: 32px 24px 24px 24px;
+  border-radius: 18px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  overflow: hidden;
+}
+
+#xp-chart-section,
+#grades-chart-section {
+  min-height: 460px;
 }
 
 .chart-section h3 {
   margin-top: 0;
   color: #fff;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-  font-size: 1.15em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  font-size: 1.4em;
   font-weight: bold;
-}
-
-.chart {
-  height: 300px;
-  width: 100%;
-  overflow: hidden;
-  background: transparent;
-}
-
-.chart-error {
-  padding: 15px;
-  background-color: #fee;
-  border-radius: 4px;
-  border: 1px solid #e74c3c;
-  color: #e8491d;
-}
-
-.chart-fallback {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  background-color: #f8f9fa;
-  border: 1px dashed #ccc;
-  border-radius: 4px;
-}
-
-.chart-fallback ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 10px 0 0 0;
+  letter-spacing: 0.5px;
   text-align: center;
 }
 
-svg {
-  font-family: inherit;
-  font-size: 12px;
-  background: transparent;
+.chart {
+  height: 380px;
+  width: 100%;
+  overflow: auto;
+  background: rgba(35, 40, 45, 0.3);
+  border-radius: 12px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+  padding: 12px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart::-webkit-scrollbar {
+  height: 8px;
+}
+
+.chart::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.chart::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.chart::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.chart-svg {
+  min-width: 100%;
+}
+
+.bar {
+  fill: #ff7e5f;
+  rx: 6px;
+  ry: 6px;
+  transition: fill 0.3s, filter 0.3s;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
 }
 
 .bar:hover {
-  fill: #ff7f0e;
+  fill: #e8491d;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
 }
 
 .axis text {
-  fill: #fff;
+  fill: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.x-axis text {
+  font-size: 14px;
+}
+
+.y-axis text {
+  font-size: 14px;
 }
 
 .axis line,
 .axis path {
-  stroke: #fff;
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 1.5px;
 }
 
-@media (min-width: 768px) {
+.grid-lines line {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-dasharray: 2, 3;
+}
+
+.chart-label {
+  fill: #ffffff;
+  font-size: 15px;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.chart-title {
+  fill: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.chart-y-label {
+  fill: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.chart-error {
+  background: rgba(232, 73, 29, 0.2);
+  padding: 24px;
+  border-radius: 12px;
+  text-align: center;
+  color: white;
+  font-weight: 500;
+}
+
+.chart-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px;
+  color: white;
+  font-size: 18px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+}
+
+.tooltip rect {
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+}
+
+@media (min-width: 1100px) {
   .charts-container {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 24px;
+    flex-direction: column;
   }
 
   .chart-section {
-    flex: 1 1 calc(33% - 24px);
-    min-width: 280px;
+    width: 100%;
+  }
+
+  .chart {
+    height: 420px;
   }
 }
 
 @media (max-width: 900px) {
-  #stats-container,
-  .stats-container {
-    padding: 0;
-    margin: 24px 2vw 16px 2vw;
-    max-width: 98vw;
+  .chart-section {
+    padding: 20px 12px;
   }
-  .stats-header,
+
+  .chart {
+    height: 320px;
+  }
+
+  .chart-section h3 {
+    font-size: 1.2em;
+  }
+
+  .axis text {
+    font-size: 12px;
+  }
+
+  .chart-title {
+    font-size: 16px;
+  }
+
+  .chart-y-label {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 600px) {
   .charts-container {
-    padding: 18px 8vw 12px 8vw;
+    padding: 16px 8px;
   }
-  .stats-summary {
-    flex-direction: column;
-    gap: 15px;
-    padding: 18px 0;
+
+  .chart-section {
+    padding: 16px 8px;
   }
-  .summary-item {
-    min-width: auto;
+
+  .chart {
+    height: 280px;
+  }
+
+  .axis text {
+    font-size: 10px;
   }
 }
