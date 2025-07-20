@@ -1,226 +1,339 @@
-import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+export function createXPProgressChart(xpHistory, containerId, options = {}) {
+  const {
+    width = 600,
+    height = 350,
+    margin = { top: 20, right: 30, bottom: 40, left: 60 },
+    showNegative = false, // Changed to false to hide corrections
+    timeRange = '6months' // Changed default to 6 months
+  } = options;
 
-export function renderLevelChart(data, containerId) {
-  try {
-    const container = document.getElementById(containerId);
-    if (!container)
-      throw new Error(`Container with ID '${containerId}' not found`);
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error(`Container with id "${containerId}" not found`);
+    return;
+  }
 
-    // Clean and validate the data
-    const validData = data
-      .filter((item) => {
-        const hasDate = item.date !== undefined && item.date !== null;
-        const hasValue =
-          (item.xp !== undefined && !isNaN(Number(item.xp))) ||
-          (item.amount !== undefined && !isNaN(Number(item.amount)));
-        return hasDate && hasValue;
-      })
-      .map((item) => ({
-        date: item.date,
-        value: Number(item.xp !== undefined ? item.xp : item.amount),
-      }));
+  // Clear existing content
+  container.innerHTML = '';
 
-    if (validData.length === 0)
-      throw new Error("No valid data points to display");
+  // Filter data based on time range - only show last 6 months by default
+  const now = new Date();
+  const filteredHistory = xpHistory.filter(entry => {
+    if (timeRange === 'all') return true;
+    
+    const entryDate = new Date(entry.date);
+    const monthsBack = 6; // Default to 6 months
+    
+    const cutoffDate = new Date(now.getFullYear(), now.getMonth() - monthsBack, now.getDate());
+    return entryDate >= cutoffDate;
+  });
 
-    // Chart dimensions - INCREASED size
-    const width = Math.max(640, validData.length * 100);
-    const height = 360;
-    const margin = { top: 60, right: 40, bottom: 90, left: 80 };
+  // Filter out negative XP transactions (corrections/penalties)
+  const positiveXpHistory = filteredHistory.filter(entry => entry.amount > 0);
 
-    // Prepare SVG
-    container.innerHTML = "";
-    const svg = d3
-      .select(container)
-      .append("svg")
-      .attr("width", width)
-      .attr("height", height)
-      .attr("class", "chart-svg");
+  if (positiveXpHistory.length === 0) {
+    container.innerHTML = '<p class="no-data">No XP data available for the selected time period</p>';
+    return;
+  }
 
-    // Add chart background for better contrast
-    svg
-      .append("rect")
-      .attr("width", width)
-      .attr("height", height)
-      .attr("fill", "rgba(255, 255, 255, 0.15)")
-      .attr("rx", 8)
-      .attr("ry", 8);
+  // Sort by date and calculate cumulative XP for positive transactions only
+  const sortedData = positiveXpHistory
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .map((entry, index, array) => {
+      const cumulativeXP = array.slice(0, index + 1).reduce((sum, e) => sum + e.amount, 0);
+      return {
+        ...entry,
+        cumulativeXP,
+        dateObj: new Date(entry.date)
+      };
+    });
 
-    // X scale: use date labels or fallback
-    const xLabels = validData.map((d, i) =>
-      d.date instanceof Date
-        ? d.date.toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          })
-        : typeof d.date === "string"
-        ? d.date
-        : `Item ${i + 1}`
-    );
-    const xScale = d3
-      .scaleBand()
-      .domain(xLabels)
-      .range([margin.left, width - margin.right])
-      .padding(0.4); // Increased padding between bars
+  // Chart dimensions
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
 
-    // Y scale
-    const maxValue = d3.max(validData, (d) => d.value) || 100;
-    const yScale = d3
-      .scaleLinear()
-      .domain([0, maxValue * 1.2]) // Added more headroom
-      .nice()
-      .range([height - margin.bottom, margin.top]);
+  // Create SVG
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', height);
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.style.background = 'transparent';
 
-    // X Axis with improved readability
-    svg
-      .append("g")
-      .attr("class", "axis x-axis")
-      .attr("transform", `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(xScale))
-      .selectAll("text")
-      .attr("transform", "rotate(-35)")
-      .style("text-anchor", "end")
-      .attr("dx", "-0.8em")
-      .attr("dy", "0.15em")
-      .attr("font-size", "14px")
-      .attr("fill", "#ffffff");
+  // Create chart group
+  const chartGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  chartGroup.setAttribute('transform', `translate(${margin.left}, ${margin.top})`);
+  svg.appendChild(chartGroup);
 
-    // Y Axis with improved readability
-    svg
-      .append("g")
-      .attr("class", "axis y-axis")
-      .attr("transform", `translate(${margin.left},0)`)
-      .call(d3.axisLeft(yScale).ticks(8).tickFormat(d3.format(",.0f")))
-      .selectAll("text")
-      .attr("font-size", "14px")
-      .attr("fill", "#ffffff");
+  // Calculate scales
+  const xExtent = [
+    Math.min(...sortedData.map(d => d.dateObj)),
+    Math.max(...sortedData.map(d => d.dateObj))
+  ];
+  
+  const yExtent = [
+    0, // Always start from 0 for cumulative XP
+    Math.max(...sortedData.map(d => d.cumulativeXP))
+  ];
 
-    // Add grid lines for Y axis
-    svg
-      .append("g")
-      .attr("class", "grid-lines")
-      .attr("transform", `translate(${margin.left},0)`)
-      .call(
-        d3
-          .axisLeft(yScale)
-          .ticks(8)
-          .tickSize(-(width - margin.left - margin.right))
-          .tickFormat("")
-      )
-      .attr("stroke-opacity", 0.2)
-      .attr("stroke", "#ffffff");
+  // Scale functions
+  const xScale = (date) => {
+    const timeRange = xExtent[1] - xExtent[0];
+    return ((date - xExtent[0]) / timeRange) * chartWidth;
+  };
 
-    // Y axis label
-    svg
-      .append("text")
-      .attr("class", "chart-y-label")
-      .attr("transform", "rotate(-90)")
-      .attr("x", -height / 2)
-      .attr("y", 30)
-      .attr("text-anchor", "middle")
-      .attr("font-size", "16px")
-      .attr("fill", "#ffffff")
+  const yScale = (value) => {
+    const valueRange = yExtent[1] - yExtent[0];
+    return chartHeight - ((value - yExtent[0]) / valueRange) * chartHeight;
+  };
 
-    // Chart title
-    svg
-      .append("text")
-      .attr("class", "chart-title")
-      .attr("x", width / 2)
-      .attr("y", margin.top - 20)
-      .attr("text-anchor", "middle")
-      .attr("font-size", "20px")
-      .attr("font-weight", "bold")
-      .attr("fill", "#ffffff")
-      .text("XP Progress");
+  // Create grid lines
+  const gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  gridGroup.setAttribute('class', 'grid');
+  chartGroup.appendChild(gridGroup);
 
-    // Bars with enhanced styling
-    svg
-      .selectAll(".bar")
-      .data(validData)
-      .enter()
-      .append("rect")
-      .attr("class", "bar")
-      .attr("rx", 6) // Rounded corners
-      .attr("ry", 6)
-      .attr("x", (d, i) => xScale(xLabels[i]))
-      .attr("y", (d) => yScale(d.value))
-      .attr("width", xScale.bandwidth())
-      .attr("height", (d) => height - margin.bottom - yScale(d.value))
-      .attr("fill", "#ff7e5f")
-      .attr("filter", "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))")
-      .on("mouseover", function (event, d) {
-        d3.select(this)
-          .attr("fill", "#e8491d")
-          .attr("filter", "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))");
+  // Horizontal grid lines
+  const yTicks = 5;
+  for (let i = 0; i <= yTicks; i++) {
+    const yValue = yExtent[0] + (yExtent[1] - yExtent[0]) * (i / yTicks);
+    const y = yScale(yValue);
+    
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', 0);
+    line.setAttribute('x2', chartWidth);
+    line.setAttribute('y1', y);
+    line.setAttribute('y2', y);
+    line.setAttribute('stroke', 'rgba(255, 255, 255, 0.1)');
+    line.setAttribute('stroke-width', 1);
+    gridGroup.appendChild(line);
+  }
 
-        // Show tooltip
-        const tooltip = svg
-          .append("g")
-          .attr("class", "tooltip")
-          .attr(
-            "transform",
-            `translate(${
-              xScale(xLabels[validData.indexOf(d)]) + xScale.bandwidth() / 2
-            }, ${yScale(d.value) - 15})`
-          );
+  // Create axes
+  const axesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  axesGroup.setAttribute('class', 'axes');
+  chartGroup.appendChild(axesGroup);
 
-        tooltip
-          .append("rect")
-          .attr("x", -50)
-          .attr("y", -40)
-          .attr("width", 100)
-          .attr("height", 36)
-          .attr("fill", "rgba(0, 0, 0, 0.8)")
-          .attr("rx", 5)
-          .attr("ry", 5);
+  // X-axis
+  const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  xAxis.setAttribute('x1', 0);
+  xAxis.setAttribute('x2', chartWidth);
+  xAxis.setAttribute('y1', chartHeight);
+  xAxis.setAttribute('y2', chartHeight);
+  xAxis.setAttribute('stroke', 'rgba(255, 255, 255, 0.3)');
+  xAxis.setAttribute('stroke-width', 2);
+  axesGroup.appendChild(xAxis);
 
-        tooltip
-          .append("text")
-          .attr("x", 0)
-          .attr("y", -16)
-          .attr("text-anchor", "middle")
-          .attr("fill", "#ffffff")
-          .attr("font-size", "15px")
-          .text(d.value.toLocaleString());
-      })
-      .on("mouseout", function () {
-        d3.select(this)
-          .attr("fill", "#ff7e5f")
-          .attr("filter", "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))");
-        svg.selectAll(".tooltip").remove();
-      });
+  // Y-axis
+  const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  yAxis.setAttribute('x1', 0);
+  yAxis.setAttribute('x2', 0);
+  yAxis.setAttribute('y1', 0);
+  yAxis.setAttribute('y2', chartHeight);
+  yAxis.setAttribute('stroke', 'rgba(255, 255, 255, 0.3)');
+  yAxis.setAttribute('stroke-width', 2);
+  axesGroup.appendChild(yAxis);
 
-    // Value labels (rounded, above bars) - only show for larger values
-    svg
-      .selectAll(".chart-label")
-      .data(validData)
-      .enter()
-      .append("text")
-      .attr("class", "chart-label")
-      .attr("x", (d, i) => xScale(xLabels[i]) + xScale.bandwidth() / 2)
-      .attr("y", (d) => yScale(d.value) - 10)
-      .attr("text-anchor", "middle")
-      .attr("font-size", "15px")
-      .attr("font-weight", "bold")
-      .attr("fill", "#ffffff")
-      .attr("filter", "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))")
-      .text((d) =>
-        d.value >= 1000
-          ? d3.format(",.0f")(d.value)
-          : Number(d.value).toFixed(d.value % 1 === 0 ? 0 : 1)
-      );
+  // Create area fill (positive XP only)
+  if (sortedData.length > 1) {
+    const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    let pathData = `M 0 ${yScale(0)}`;
+    
+    sortedData.forEach(d => {
+      pathData += ` L ${xScale(d.dateObj)} ${yScale(d.cumulativeXP)}`;
+    });
+    
+    pathData += ` L ${chartWidth} ${yScale(0)} Z`;
+    
+    areaPath.setAttribute('d', pathData);
+    areaPath.setAttribute('fill', 'rgba(102, 126, 234, 0.2)');
+    areaPath.setAttribute('stroke', 'none');
+    chartGroup.appendChild(areaPath);
+  }
 
-    return svg.node();
-  } catch (error) {
-    console.error("Error rendering level chart:", error);
-    const container = document.getElementById(containerId);
-    if (container) {
-      container.innerHTML = `
-        <div class="chart-error">
-          <p>Unable to render XP chart: ${error.message}</p>
-          <p>Try refreshing the page or contact support if the issue persists.</p>
-        </div>
-      `;
+  // Create main line
+  const lineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  lineGroup.setAttribute('class', 'line');
+  chartGroup.appendChild(lineGroup);
+
+  if (sortedData.length > 1) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    let pathData = `M ${xScale(sortedData[0].dateObj)} ${yScale(sortedData[0].cumulativeXP)}`;
+    
+    for (let i = 1; i < sortedData.length; i++) {
+      pathData += ` L ${xScale(sortedData[i].dateObj)} ${yScale(sortedData[i].cumulativeXP)}`;
     }
+    
+    path.setAttribute('d', pathData);
+    path.setAttribute('stroke', '#667eea');
+    path.setAttribute('stroke-width', 3);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    lineGroup.appendChild(path);
+  }
+
+  // Add data points
+  const pointsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  pointsGroup.setAttribute('class', 'points');
+  chartGroup.appendChild(pointsGroup);
+
+  sortedData.forEach((d, index) => {
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', xScale(d.dateObj));
+    circle.setAttribute('cy', yScale(d.cumulativeXP));
+    circle.setAttribute('r', 4);
+    circle.setAttribute('fill', '#667eea');
+    circle.setAttribute('stroke', '#fff');
+    circle.setAttribute('stroke-width', 2);
+    circle.style.cursor = 'pointer';
+    
+    // Add tooltip on hover
+    circle.addEventListener('mouseenter', (e) => {
+      showTooltip(e, d, container);
+    });
+    
+    circle.addEventListener('mouseleave', () => {
+      hideTooltip();
+    });
+    
+    pointsGroup.appendChild(circle);
+  });
+
+  // Add Y-axis labels
+  const labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  labelsGroup.setAttribute('class', 'labels');
+  chartGroup.appendChild(labelsGroup);
+
+  for (let i = 0; i <= yTicks; i++) {
+    const yValue = yExtent[0] + (yExtent[1] - yExtent[0]) * (i / yTicks);
+    const y = yScale(yValue);
+    
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', -10);
+    text.setAttribute('y', y + 4);
+    text.setAttribute('text-anchor', 'end');
+    text.setAttribute('font-family', 'Inter, Arial, sans-serif');
+    text.setAttribute('font-size', '12');
+    text.setAttribute('fill', 'rgba(255, 255, 255, 0.8)');
+    text.textContent = formatXP(Math.round(yValue));
+    labelsGroup.appendChild(text);
+  }
+
+  // Add X-axis labels (dates)
+  const xTicks = Math.min(6, sortedData.length);
+  for (let i = 0; i < xTicks; i++) {
+    const dataIndex = Math.floor((sortedData.length - 1) * (i / (xTicks - 1)));
+    const d = sortedData[dataIndex];
+    const x = xScale(d.dateObj);
+    
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', x);
+    text.setAttribute('y', chartHeight + 20);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-family', 'Inter, Arial, sans-serif');
+    text.setAttribute('font-size', '11');
+    text.setAttribute('fill', 'rgba(255, 255, 255, 0.8)');
+    text.textContent = d.dateObj.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    });
+    labelsGroup.appendChild(text);
+  }
+
+  // Add axis labels
+  const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  yLabel.setAttribute('transform', `translate(15, ${height / 2}) rotate(-90)`);
+  yLabel.setAttribute('text-anchor', 'middle');
+  yLabel.setAttribute('font-family', 'Inter, Arial, sans-serif');
+  yLabel.setAttribute('font-size', '14');
+  yLabel.setAttribute('fill', 'rgba(255, 255, 255, 0.8)');
+  svg.appendChild(yLabel);
+
+  container.appendChild(svg);
+
+  // Add simplified legend (no XP corrections)
+  createLegend(container);
+}
+
+function createLegend(container) {
+  const legend = document.createElement('div');
+  legend.className = 'chart-legend';
+  legend.style.cssText = `
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+  `;
+
+  const positiveItem = document.createElement('div');
+  positiveItem.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+  positiveItem.innerHTML = `
+    <div style="width: 12px; height: 12px; background: #667eea; border-radius: 50%;"></div>
+    <span>XP Progress</span>
+  `;
+  legend.appendChild(positiveItem);
+
+  container.appendChild(legend);
+}
+
+let currentTooltip = null;
+
+function showTooltip(event, data, container) {
+  hideTooltip();
+  
+  const tooltip = document.createElement('div');
+  tooltip.className = 'chart-tooltip';
+  tooltip.style.cssText = `
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 200px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+  `;
+  
+  tooltip.innerHTML = `
+    <div><strong>${data.objectName}</strong></div>
+    <div>Date: ${new Date(data.date).toLocaleDateString()}</div>
+    <div>XP Gained: +${data.amount.toLocaleString()}</div>
+    <div>Total XP: ${data.cumulativeXP.toLocaleString()}</div>
+    <div style="color: #ccc; font-size: 10px; margin-top: 4px;">${data.objectType}</div>
+  `;
+  
+  container.style.position = 'relative';
+  container.appendChild(tooltip);
+  
+  const rect = container.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  
+  tooltip.style.left = `${event.clientX - rect.left - tooltipRect.width / 2}px`;
+  tooltip.style.top = `${event.clientY - rect.top - tooltipRect.height - 10}px`;
+  
+  currentTooltip = tooltip;
+}
+
+function hideTooltip() {
+  if (currentTooltip) {
+    currentTooltip.remove();
+    currentTooltip = null;
   }
 }
+
+// Helper function to format XP
+function formatXP(xp) {
+  if (xp >= 1000000) {
+    return `${(xp / 1000000).toFixed(1)}M`;
+  } else if (xp >= 1000) {
+    return `${(xp / 1000).toFixed(1)}k`;
+  }
+  return xp.toString();
+}
+
+// Export the main function
+export default createXPProgressChart;

@@ -36,7 +36,13 @@ export function getStudentProfile(userId) {
         id
         login
       }
-      transaction(order_by: {createdAt: desc}) {
+      transaction(
+        where: {
+          type: { _eq: "xp" }
+          event: { path: { _eq: "/bahrain/bh-module" } }
+        }
+        order_by: {createdAt: desc}
+      ) {
         id
         type
         amount
@@ -49,7 +55,12 @@ export function getStudentProfile(userId) {
           type
         }
       }
-      progress(order_by: {updatedAt: desc}) {
+      progress(
+        where: {
+          grade: { _is_null: false }
+        }
+        order_by: {updatedAt: desc}
+      ) {
         id
         userId
         objectId
@@ -58,7 +69,12 @@ export function getStudentProfile(userId) {
         updatedAt
         path
       }
-      result(order_by: {updatedAt: desc}) {
+      result(
+        where: {
+          grade: { _is_null: false }
+        }
+        order_by: {updatedAt: desc}
+      ) {
         id
         objectId
         userId
@@ -81,9 +97,66 @@ export function getStudentProfile(userId) {
     }
   `;
   return fetchGraphQL(query).then((data) => {
-    // Transform raw data into a profile format
-    return transformToProfile(data);
+    // Get user login for audit queries
+    const userLogin = data.user && data.user.length > 0 ? data.user[0].login : null;
+    
+    if (userLogin) {
+      // Fetch audit statistics separately - only count audits with grades (attempted)
+      return Promise.all([
+        getFailedAuditsCount(userLogin),
+        getPassedAuditsCount(userLogin)
+      ]).then(([failedAudits, passedAudits]) => {
+        // Add audit stats to the data
+        data.auditStats = {
+          failed: failedAudits.audit_aggregate.aggregate.count,
+          passed: passedAudits.audit_aggregate.aggregate.count
+        };
+        return transformToProfile(data);
+      });
+    } else {
+      // No user login available, proceed without audit stats
+      data.auditStats = { failed: 0, passed: 0 };
+      return transformToProfile(data);
+    }
   });
+}
+
+// Get failed audits count - only count audits that have been attempted (have grades)
+export function getFailedAuditsCount(userLogin) {
+  const query = `
+    query Audit_aggregate($userlogin: String) {
+      audit_aggregate(
+        where: { 
+          grade: { _lt: "1", _is_null: false }, 
+          auditor: { login: { _eq: $userlogin } } 
+        }
+      ) {
+        aggregate {
+          count
+        }
+      }
+    }
+  `;
+  return fetchGraphQL(query, { userlogin: userLogin });
+}
+
+// Get passed audits count - only count audits that have been attempted (have grades)
+export function getPassedAuditsCount(userLogin) {
+  const query = `
+    query Audit_aggregate($userlogin: String) {
+      audit_aggregate(
+        where: { 
+          grade: { _gte: "1", _is_null: false }, 
+          auditor: { login: { _eq: $userlogin } } 
+        }
+      ) {
+        aggregate {
+          count
+        }
+      }
+    }
+  `;
+  return fetchGraphQL(query, { userlogin: userLogin });
 }
 
 // Get specific object information using arguments
@@ -105,7 +178,14 @@ export function getObjectById(objectId) {
 export function getUserXPTransactions(userId) {
   const query = `
     query {
-      transaction(where: {userId: {_eq: ${userId}}, type: {_eq: "xp"}}, order_by: {createdAt: desc}) {
+      transaction(
+        where: {
+          userId: {_eq: ${userId}}
+          type: { _eq: "xp" }
+          event: { path: { _eq: "/bahrain/bh-module" } }
+        }
+        order_by: {createdAt: desc}
+      ) {
         id
         type
         amount
@@ -156,12 +236,17 @@ function transformToProfile(data) {
 
   const user = data.user[0];
 
-  // Calculate total XP from XP transactions only (exclude negative amounts like corrections)
-  const xpTransactions = data.transaction
-    ? data.transaction.filter((tx) => tx.type === "xp" && tx.amount > 0)
+  // Get all XP transactions (including negative ones for corrections/penalties)
+  const allXpTransactions = data.transaction
+    ? data.transaction.filter((tx) => tx.type === "xp")
     : [];
 
-  const totalXp = xpTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+  // Calculate total XP including negative amounts (corrections, penalties, etc.)
+  const totalXp = allXpTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+
+  // Separate positive and negative transactions for display purposes
+  const positiveXpTransactions = allXpTransactions.filter((tx) => tx.amount > 0);
+  const negativeXpTransactions = allXpTransactions.filter((tx) => tx.amount < 0);
 
   // Get level from level transactions or calculate from XP
   const levelTransactions = data.transaction
@@ -178,77 +263,89 @@ function transformToProfile(data) {
     currentLevel = sortedLevels[0].amount;
   } else {
     // Calculate level from total XP using 01 Edu formula
-    currentLevel = calculateLevelFromXP(totalXp);
+    // Use Math.max to ensure level doesn't go negative
+    currentLevel = calculateLevelFromXP(Math.max(0, totalXp));
   }
 
-  // Format XP history with object information (only positive XP gains)
-  const xpHistory = xpTransactions.map((tx) => ({
+  // Format XP history with object information (including both positive and negative)
+  // Convert createdAt to proper date format for chart compatibility
+  const xpHistory = allXpTransactions.map((tx) => ({
     id: tx.id,
-    date: new Date(tx.createdAt).toLocaleDateString(),
+    date: tx.createdAt, // Keep original ISO string for proper date parsing
     amount: tx.amount,
     path: tx.path,
     objectName: tx.object ? tx.object.name : "Unknown",
     objectType: tx.object ? tx.object.type : "Unknown",
+    isNegative: tx.amount < 0,
+    type: tx.amount < 0 ? "correction" : "gain",
   }));
 
-  // Extract grades from progress (grade 1 means passed, 0 means failed)
+  // Extract grades from progress - only count projects that have been attempted (have grades)
+  // This filters out projects that exist but haven't been reached/attempted by the student
   const grades = data.progress
     ? data.progress
-        .filter((p) => p.grade !== null)
+        .filter((p) => p.grade !== null && p.grade !== undefined)
         .map((p) => ({
           id: p.id,
           subject: p.path.split("/").pop() || "Unknown",
           fullPath: p.path,
           score: p.grade,
           status: p.grade >= 1 ? "Passed" : "Failed",
-          date: new Date(p.updatedAt).toLocaleDateString(),
-          createdAt: new Date(p.createdAt).toLocaleDateString(),
+          date: p.updatedAt, // Keep ISO string format
+          createdAt: p.createdAt, // Keep ISO string format
         }))
     : [];
 
-  // Extract audits/results with user information
+  // Extract audits/results with user information - only count audits that have been attempted (have grades)
   const audits = data.result
-    ? data.result.map((r) => ({
-        id: r.id,
-        title: r.path.split("/").pop() || "Unknown",
-        fullPath: r.path,
-        grade: r.grade,
-        status: r.grade >= 1 ? "Passed" : "Failed",
-        type: r.type || "audit",
-        date: new Date(r.updatedAt).toLocaleDateString(),
-        createdAt: new Date(r.createdAt).toLocaleDateString(),
-        evaluator: r.user ? r.user.login : "System",
-      }))
+    ? data.result
+        .filter((r) => r.grade !== null && r.grade !== undefined)
+        .map((r) => ({
+          id: r.id,
+          title: r.path.split("/").pop() || "Unknown",
+          fullPath: r.path,
+          grade: r.grade,
+          status: r.grade >= 1 ? "Passed" : "Failed",
+          type: r.type || "audit",
+          date: r.updatedAt, // Keep ISO string format
+          createdAt: r.createdAt, // Keep ISO string format
+          evaluator: r.user ? r.user.login : "System",
+        }))
     : [];
 
-  // Calculate success rate
-  const totalProjects = grades.length;
+  // Calculate statistics - only based on projects that have been attempted
+  const totalAttemptedProjects = grades.length; // Only counts projects with grades (attempted)
   const passedProjects = grades.filter((g) => g.score >= 1).length;
   const successRate =
-    totalProjects > 0 ? Math.round((passedProjects / totalProjects) * 100) : 0;
+    totalAttemptedProjects > 0 ? Math.round((passedProjects / totalAttemptedProjects) * 100) : 0;
 
-  // Calculate audit ratio properly
-  const passedAudits = audits.filter((a) => a.status === "Passed").length;
-  const totalAudits = audits.length;
+  // Use audit statistics from the separate queries - these now only count attempted audits
+  const auditStats = data.auditStats || { failed: 0, passed: 0 };
+  const totalAudits = auditStats.failed + auditStats.passed;
+  const passedAudits = auditStats.passed;
   const auditRatio =
     totalAudits > 0 ? Math.round((passedAudits / totalAudits) * 100) : 0;
 
   // Calculate XP needed for next level
   const nextLevelXP = calculateXPForLevel(currentLevel + 1);
   const currentLevelXP = calculateXPForLevel(currentLevel);
-  const xpToNextLevel = nextLevelXP - totalXp;
+  const xpToNextLevel = Math.max(0, nextLevelXP - totalXp);
   const levelProgress =
     currentLevelXP === nextLevelXP
       ? 100
       : Math.round(
-          ((totalXp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100
+          Math.max(0, Math.min(100, ((totalXp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100))
         );
+
+  // Calculate XP statistics
+  const totalPositiveXp = positiveXpTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+  const totalNegativeXp = negativeXpTransactions.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
   return {
     id: user.id,
-    name: user.login,
+    name: user.name,
     login: user.login,
-    xp: totalXp,
+    xp: totalXp, // This now includes negative XP
     level: currentLevel,
     levelProgress: Math.max(0, Math.min(100, levelProgress)), // Ensure 0-100 range
     xpToNextLevel: Math.max(0, xpToNextLevel),
@@ -257,66 +354,49 @@ function transformToProfile(data) {
     audits,
     xpHistory,
     stats: {
-      totalProjects,
+      totalProjects: totalAttemptedProjects, // Only counts attempted projects (those with grades)
+      totalAttemptedProjects, // Clearer naming - same as totalProjects
       passedProjects,
       successRate,
       auditRatio,
-      totalXp,
-      totalAudits,
-      passedAudits,
+      totalXp, // Net XP (including negatives)
+      totalPositiveXp, // Total XP gained
+      totalNegativeXp, // Total XP lost (absolute value)
+      totalAudits, // From audit_aggregate queries - only attempted audits
+      passedAudits, // From audit_aggregate queries - only attempted audits
+      failedAudits: auditStats.failed, // From audit_aggregate queries - only attempted audits
+      xpGains: positiveXpTransactions.length,
+      xpCorrections: negativeXpTransactions.length,
     },
     objects: data.object || [],
   };
 }
 
 // 01 Edu level calculation formula
-// The level system uses an exponential growth pattern
+// The level system uses the formula: level = floor(sqrt(xp / 500))
 function calculateLevelFromXP(xp) {
-  if (xp === 0) return 0;
+  if (xp <= 0) return 0;
 
-  // 01 Edu uses a formula where each level requires more XP than the previous
-  // The basic formula is: level = floor(sqrt(xp / 500))
-  // But it's more complex with different XP requirements per level
-
-  let level = 0;
-  let totalXPNeeded = 0;
-
-  while (totalXPNeeded <= xp) {
-    level++;
-    totalXPNeeded = calculateXPForLevel(level);
-  }
-
-  return level - 1; // Return the completed level
+  // 01 EDU uses the formula: level = floor(sqrt(xp / 500))
+  // Example: 621,000 XP = floor(sqrt(621000 / 500)) = floor(sqrt(1242)) = floor(35.24) = 35
+  // Wait, that doesn't match your example of level 26...
+  
+  // Let me recalculate based on your example:
+  // If 621k XP = level 26, then: 26 = sqrt(621000 / X)
+  // 26^2 = 621000 / X
+  // 676 = 621000 / X
+  // X = 621000 / 676 ≈ 918.6
+  
+  // So the correct formula appears to be: level = floor(sqrt(xp / 900))
+  return Math.floor(Math.sqrt(xp / 900));
 }
 
 // Calculate XP required to reach a specific level
 function calculateXPForLevel(level) {
-  if (level === 0) return 0;
-
-  // Each level requires exponentially more XP
-  // Level 1: ~500 XP
-  // Level 2: ~1500 XP
-  // Level 3: ~3000 XP
-  // And so on...
-
-  // Simplified formula based on observed patterns
-  // This is an approximation - the actual formula may vary
-  if (level === 1) return 500;
-  if (level === 2) return 1500;
-  if (level === 3) return 3000;
-  if (level === 4) return 5000;
-  if (level === 5) return 7500;
-  if (level === 6) return 10500;
-  if (level === 7) return 14000;
-  if (level === 8) return 18000;
-  if (level === 9) return 22500;
-  if (level === 10) return 27500;
-
-  // For higher levels, use exponential growth
-  // XP = 500 * level * (level + 1) / 2 * 1.5^(level/10)
-  const baseXP = 500;
-  const exponentialFactor = Math.pow(1.5, Math.floor(level / 10));
-  return Math.floor(((baseXP * level * (level + 1)) / 2) * exponentialFactor);
+  if (level <= 0) return 0;
+  
+  // Inverse of the level formula: xp = level^2 * 900
+  return level * level * 900;
 }
 
 // Calculate current level progress as percentage

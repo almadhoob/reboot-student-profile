@@ -18,11 +18,6 @@ export const Router = {
       view: "profile",
       requiresAuth: true,
     },
-    stats: {
-      path: "/stats",
-      view: "stats",
-      requiresAuth: true,
-    },
     error: {
       path: "/error",
       view: "error",

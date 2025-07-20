@@ -29,10 +29,9 @@ This project is a Single Page Application (SPA) designed with plain HTML, CSS, a
 │   ├── home.js                # Landing page with login call-to-action
 │   ├── login.js               # Authentication form
 │   ├── profile.js             # User profile with grades and audits
-│   ├── stats.js               # Statistics dashboard with charts
 │   ├── error.js               # 404 error page
 │   └── components/
-│       ├── levelChart.js      # D3.js XP progress visualization
+│       ├── levelsChart.js      # D3.js XP progress visualization
 │       └── gradesChart.js     # D3.js grades performance chart
 ├── LICENSE                    # MIT License
 └── README.md                  # This documentation
@@ -90,7 +89,7 @@ Visit the live application: [http://almadhoob.github.io/reboot-student-profile](
 
 ### Authentication
 
-- Use your standard 01 Edu/Reboot01 username and password
+- Use your standard 01 Edu username and password
 - The application stores JWT tokens securely in localStorage
 - Automatic logout on token expiration
 
